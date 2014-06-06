@@ -11,6 +11,141 @@
 #include <unordered_map>
 #include <assert.h>
 
+#define COMPARISON CompareNode
+
+//output for CompareNode
+//abracadabra
+//4
+//abracadabra
+//abba
+//baba
+//radar
+//Creating new node for dc
+//Creating new node for rdc
+//Creating new node for brdc
+//Creating new node for abrdc
+//Setting prefix code for a to 0
+//Setting prefix code for b to 10
+//Setting prefix code for r to 110
+//Setting prefix code for d to 1110
+//Setting prefix code for c to 1111
+//01011001111011100101100
+//23
+//010100
+//6
+//100100
+//6
+//110011100110
+//12
+
+//output for CompareNode2
+//abracadabra
+//4
+//abracadabra
+//abba
+//baba
+//radar
+//Creating new node for cd
+//Creating new node for cdb
+//Creating new node for rcdb
+//Creating new node for arcdb
+//Setting prefix code for a to 0
+//Setting prefix code for r to 10
+//Setting prefix code for c to 1100
+//Setting prefix code for d to 1101
+//Setting prefix code for b to 111
+//01111001100011010111100
+//23
+//01111110
+//8
+//11101110
+//8
+//1001101010
+//10
+
+//output for CompareNode3
+//abracadabra
+//4
+//abracadabra
+//abba
+//baba
+//radar
+//Creating new node for cd
+//Creating new node for cdb
+//Creating new node for rcdb
+//Creating new node for arcdb
+//Setting prefix code for a to 0
+//Setting prefix code for r to 10
+//Setting prefix code for c to 1100
+//Setting prefix code for d to 1101
+//Setting prefix code for b to 111
+//01111001100011010111100
+//23
+//01111110
+//8
+//11101110
+//8
+//1001101010
+//10
+
+//output for CompareNode4
+//abracadabra
+//4
+//abracadabra
+//abba
+//baba
+//radar
+//Creating new node for dc
+//Creating new node for rb
+//Creating new node for dcrb
+//Creating new node for adcrb
+//Setting prefix code for a to 0
+//Setting prefix code for d to 100
+//Setting prefix code for c to 101
+//Setting prefix code for r to 110
+//Setting prefix code for b to 111
+//01111100101010001111100
+//23
+//01111110
+//8
+//11101110
+//8
+//11001000110
+//11
+
+//output for CompareNode5
+//abracadabra
+//4
+//abracadabra
+//abba
+//baba
+//radar
+//Creating new node for dc
+//Creating new node for dcb
+//Creating new node for rdcb
+//Creating new node for ardcb
+//Setting prefix code for a to 0
+//Setting prefix code for r to 10
+//Setting prefix code for d to 1100
+//Setting prefix code for c to 1101
+//Setting prefix code for b to 111
+//01111001101011000111100
+//23
+//01111110
+//8
+//11101110
+//8
+//1001100010
+//10
+
+//As can be seen in the output above, the tie breaking strategy does affect the prefix code values assigned to a particular character.
+//However, the tie breaking strategy does not affect the compression of the huffman string which is used to generate the tree.
+//It does affect other strings encoded by the huffman tree.
+//CompareNode does not take ties into account and produces the steepest tree. This results in very good compression for the most used characters in the huffman string,
+//but results in poor compression for the lesser used characters, which probably results in more variance in encoded string length for all inputs.
+//The opposite is true of CompareNode4, where depth is taken into account. This results in a more even compression.
+
+
 class HuffmanNode
 {
 public:
@@ -51,6 +186,7 @@ private:
 HuffmanNode::HuffmanNode(char c) : isLeaf(true)
 {
     character = c;
+    stringOfChars = std::string(&character, 1);
     numberOfReferences = 0;
     prefixCode = new std::string;
     leftNode = nullptr;
@@ -63,27 +199,10 @@ HuffmanNode::HuffmanNode(HuffmanNode *node1, HuffmanNode *node2) : isLeaf(false)
     
     character = '\0';
     
-    std::string newNodeStringOfChars;
-    if(node1->isLeafNode())
-    {
-        char c = node1->getCharacter();
-        newNodeStringOfChars.append(&c, 1);
-    }
-    else
-    {
-        newNodeStringOfChars.append(node1->getStringOfCharacters());
-    }
+    stringOfChars = node1->getStringOfCharacters();
+    stringOfChars.append(node2->getStringOfCharacters());
     
-    if(node2->isLeafNode())
-    {
-        char c = node2->getCharacter();
-        newNodeStringOfChars.append(&c, 1);
-    }
-    else
-    {
-        newNodeStringOfChars.append(node2->getStringOfCharacters());
-    }
-    stringOfChars = newNodeStringOfChars;
+    //std::cout<< "Creating new node for " << stringOfChars <<std::endl;
     
     numberOfReferences = node1->getNumberOfReferences() + node2->getNumberOfReferences();
     
@@ -142,6 +261,7 @@ std::string &HuffmanNode::getPrefixCode()
 void HuffmanNode::setPrefixCode(std::string &code)
 {
     *prefixCode = code;
+    //std::cout<< "Setting prefix code for " << character << " to " <<*prefixCode<<std::endl;
 }
 
 HuffmanNode *HuffmanNode::getLeftNode()
@@ -157,7 +277,50 @@ HuffmanNode *HuffmanNode::getRightNode()
 struct CompareNode {
     bool operator() (HuffmanNode* leftNode, HuffmanNode* rightNode) const
     {
-        // return "true" if "p1" is ordered before "p2", for example:
+        return leftNode->getNumberOfReferences() > rightNode->getNumberOfReferences();
+    }
+};
+
+struct CompareNode2 {
+    bool operator() (HuffmanNode* leftNode, HuffmanNode* rightNode) const
+    {
+        
+        if (leftNode->getNumberOfReferences() == rightNode->getNumberOfReferences())
+            return (leftNode->getStringOfCharacters()).compare(rightNode->getStringOfCharacters());
+        
+        return leftNode->getNumberOfReferences() > rightNode->getNumberOfReferences();
+    }
+};
+
+struct CompareNode3 {
+    bool operator() (HuffmanNode* leftNode, HuffmanNode* rightNode) const
+    {
+        
+        if (leftNode->getNumberOfReferences() == rightNode->getNumberOfReferences())
+            return (rightNode->getStringOfCharacters()).compare(leftNode->getStringOfCharacters());
+        
+        return leftNode->getNumberOfReferences() > rightNode->getNumberOfReferences();
+    }
+};
+
+struct CompareNode4 {
+    bool operator() (HuffmanNode* leftNode, HuffmanNode* rightNode) const
+    {
+        
+        if (leftNode->getNumberOfReferences() == rightNode->getNumberOfReferences())
+            return leftNode->getStringOfCharacters().length() > rightNode->getStringOfCharacters().length();
+        
+        return leftNode->getNumberOfReferences() > rightNode->getNumberOfReferences();
+    }
+};
+
+struct CompareNode5 {
+    bool operator() (HuffmanNode* leftNode, HuffmanNode* rightNode) const
+    {
+        
+        if (leftNode->getNumberOfReferences() == rightNode->getNumberOfReferences())
+            return leftNode->getStringOfCharacters().length() < rightNode->getStringOfCharacters().length();
+        
         return leftNode->getNumberOfReferences() > rightNode->getNumberOfReferences();
     }
 };
@@ -174,7 +337,7 @@ private:
     void setPrefixCode(HuffmanNode*, std::string &);
     void setPrefixCodes();
     std::unordered_map<char, HuffmanNode*> *nodeMap;
-    std::priority_queue<HuffmanNode*,std::vector<HuffmanNode*>, CompareNode> *prioQueue;
+    std::priority_queue<HuffmanNode*,std::vector<HuffmanNode*>, COMPARISON> *prioQueue;
     HuffmanNode *rootNode;
 };
 
@@ -209,6 +372,9 @@ Huffman::Huffman(std::string &huffmanString)
     nodeMap = new std::unordered_map<char, HuffmanNode*>;
     
     //iterate throught the characters in the huffmanString
+    
+    //this should run in O(n), where n is number of chars in huffmanString
+    //each loop below is constant time
     for(std::string::iterator it = huffmanString.begin(); it != huffmanString.end(); ++it)
     {
         char c = *it;
@@ -224,8 +390,11 @@ Huffman::Huffman(std::string &huffmanString)
         huffmanNode->setNumberOfReferences(++characterReferences);
     }
     
-    prioQueue = new std::priority_queue<HuffmanNode*,std::vector<HuffmanNode*>, CompareNode>;
+    prioQueue = new std::priority_queue<HuffmanNode*,std::vector<HuffmanNode*>, COMPARISON>;
     
+    
+    //nodeMap contain d entries, where d is number of distinct characters in huffmanString
+    //the following runs in O(d log d)
     for (auto it = nodeMap->begin(); it != nodeMap->end(); ++it )
     {
         HuffmanNode *node = it->second;
@@ -235,6 +404,7 @@ Huffman::Huffman(std::string &huffmanString)
 
     //we now have all our entries counted and added to min prio queue
     //Build our huffman tree
+    //the following runs in O(d log d)
     while (prioQueue->size() > 2)
     {
         size_t originalSize = prioQueue->size();
@@ -266,12 +436,14 @@ Huffman::Huffman(std::string &huffmanString)
     //we now have a proper huffman tree
     //search the tree for leaves and populate prefix codes
 
+    //the following runs in O(d log d)
     setPrefixCodes();
 }
 
 Huffman::~Huffman()
 {
     ::operator delete(nodeMap);
+    ::operator delete(rootNode);
 }
 
 std::string &Huffman::prefixCodeForChar(char c)
@@ -318,6 +490,7 @@ int main(int argc, const char * argv[])
         i++;
         std::string encodedString;
         h.encode(*it++, encodedString);
+        //std::cout<<encodedString<<std::endl;
         std::cout<<encodedString.length()<<std::endl;
     }
     
