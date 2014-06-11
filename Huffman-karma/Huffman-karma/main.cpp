@@ -18,6 +18,7 @@ typedef struct{
     
 } myBasicString;
 
+//the max prefix code is set based on the fact that our alphabet is 26 chars (lowercase letters)
 #define MIN_PREFIX_CODE_LEN 1
 #define MAX_PREFIX_CODE_LEN 25
 
@@ -38,11 +39,8 @@ bool charIsInPrefixCodeMap(char c, std::unordered_map<char, myBasicString> *pref
 
 void addCharAndPrefixCodeToPrefixCodeMap(char c, myBasicString prefixCode, std::unordered_map<char, myBasicString> *prefixCodeMap)
 {
-    auto iter = prefixCodeMap->find(c);
-    
-    assert(iter == prefixCodeMap->end());
-    if (iter == prefixCodeMap->end())
-        (*prefixCodeMap)[c] = prefixCode;
+    assert(!charIsInPrefixCodeMap(c, prefixCodeMap));
+    (*prefixCodeMap)[c] = prefixCode;
 }
 
 void removeCharFromPrefixCodeMap(char c, std::unordered_map<char, myBasicString> *prefixCodeMap)
@@ -54,15 +52,12 @@ void removeCharFromPrefixCodeMap(char c, std::unordered_map<char, myBasicString>
 
 
 //this function runs order(m) where m is distinct characters in the inpt string
-bool validCharAndPrefixCodeForPrefixCodeMap(char c, myBasicString prefixCode, std::unordered_map<char, myBasicString> *prefixCodeMap)
+bool validPrefixCodeForPrefixCodeMap(myBasicString prefixCode, std::unordered_map<char, myBasicString> *prefixCodeMap)
 {
     
     myBasicString mapPrefixCode;
     
-    
-    assert(!charIsInPrefixCodeMap(c, prefixCodeMap));
-    
-    //c does not exist, check that prefixCode is valid for existing prefixCodes in the map
+    // check that prefixCode is valid for existing prefixCodes in the map
     //i.e., prefixCode is not a substring of any existing prefix codes
     //nor are any existing prefix codes a substring of prefixCode
     
@@ -84,13 +79,8 @@ bool validCharAndPrefixCodeForPrefixCodeMap(char c, myBasicString prefixCode, st
 bool HuffmanDecodeRec(myBasicString plainText, myBasicString bitString, std::unordered_map<char, myBasicString> *prefixCodeMap)
 {
     
-//    if ( (plainText.len == 0) && (bitString.len == 0))
-//        return true;
-    
     char firstChar = plainText.ptr[0];
-    
-    
-    
+ 
     //if next plainText char is already in the map, check to see if first m bits in bit string match
     //if so iterate and recurse
     //else, return false
@@ -117,11 +107,26 @@ bool HuffmanDecodeRec(myBasicString plainText, myBasicString bitString, std::uno
         else
             return false;
     }
+    //check to see if anything in the map is a prefix to the remainder of the bit string
+    //and conversely, i guess, check to see that remainder is not a prefix to anything in map
+    //two cases
+    //1) a is in map with prefix code = 1, bitstring is 110
+    //  - this cannot be a valid solution
+    //2) a and b are in map with prefix codes 00, 01, respectively
+    //  - remaining bit string is 1
+    else if(!validPrefixCodeForPrefixCodeMap(bitString, prefixCodeMap))
+    {
+        return false;
+    }
+    //note that we have aleady checked that the bitstring is valid for the current prefixCodeMap
+    //if there is only one character left, this must be an acceptable solution
+    else if(plainText.len == 1)
+    {
+        return true;
+    }
     else
     {
-        if(plainText.len == 1)
-            return validCharAndPrefixCodeForPrefixCodeMap( firstChar, bitString, prefixCodeMap);
-        
+   
         for(int i=MIN_PREFIX_CODE_LEN; i<MAX_PREFIX_CODE_LEN && i<bitString.len; i++)
         {
             
@@ -130,13 +135,22 @@ bool HuffmanDecodeRec(myBasicString plainText, myBasicString bitString, std::uno
             firstPrefixCode.ptr = bitString.ptr;
             firstPrefixCode.len = i;
             
+            assert(!charIsInPrefixCodeMap(firstChar, prefixCodeMap));
             
-            if(!validCharAndPrefixCodeForPrefixCodeMap(firstChar, firstPrefixCode, prefixCodeMap))
+            //for what reasons would this fail?
+            //above, we checked that nothing in the map is a prefix
+            //for the entire bit sting
+            //therefore, nothing in the map can be a prefix for firstPrefixCode
+            
+            //we need to check to see if firstPrefixCode would be a prefix
+            //to any others in the prefix code map
+            
+            if(!validPrefixCodeForPrefixCodeMap(firstPrefixCode, prefixCodeMap))
                 //this prefix code length is not valid, iterate
                 continue;
             
-            
             //addCharAndPrefixCodeToPrefixCodeMap checks to see if this exists in the map before we add it
+            //it can not be!!!
             addCharAndPrefixCodeToPrefixCodeMap(firstChar, firstPrefixCode, prefixCodeMap);
             
             myBasicString remainderPlainText;
@@ -147,12 +161,21 @@ bool HuffmanDecodeRec(myBasicString plainText, myBasicString bitString, std::uno
             remainderPrefixCode.ptr = bitString.ptr + i;
             remainderPrefixCode.len = bitString.len - i;
             
-            if ((remainderPlainText.len == 0) && (remainderPrefixCode.len == 0))
-                return true;
+            //if there is no remaining prefix code to process
+            //yet there is still plain text, this cannot be a solution
+            //note that plain text of len 1 is caught above
+            if (remainderPrefixCode.len == 0)
+            {
+                //plain text len 1 would be caught above
+                assert(remainderPlainText.len > 0);
+                return false;
+            }
             
             if(HuffmanDecodeRec(remainderPlainText, remainderPrefixCode, prefixCodeMap) == true)
                 return true;
             
+            //if adding this char to the map for this prefix code did not
+            //produce a valid solution, remove from the map
             removeCharFromPrefixCodeMap(firstChar, prefixCodeMap);
         }
         
@@ -177,11 +200,10 @@ bool HuffmanDecode(std::string &plainText, std::string &bitString)
     if (plainText.length() == 1)
         return true;
     
+    prefixCodeMap = new std::unordered_map<char, myBasicString>;
+    
     for(int i=MIN_PREFIX_CODE_LEN; i<MAX_PREFIX_CODE_LEN && i<bitStringBasicString.len; i++)
     {
-        
-        prefixCodeMap = new std::unordered_map<char, myBasicString>;
-        
         //get first char
         char firstChar = plainTextBasicString.ptr[0];
         myBasicString firstPrefixCode;
@@ -205,9 +227,12 @@ bool HuffmanDecode(std::string &plainText, std::string &bitString)
             return true;
         }
         
-        ::operator delete(prefixCodeMap);
+        //if adding this char to the map for this prefix code did not
+        //produce a valid solution, remove from the map
+        removeCharFromPrefixCodeMap(firstChar, prefixCodeMap);
     }
     
+    ::operator delete(prefixCodeMap);
     return false;
 }
 
