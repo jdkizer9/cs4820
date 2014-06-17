@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <assert.h>
+#include <fstream>
 
 
 #define MIN_POINT_VALUE 0
@@ -20,6 +21,7 @@
 #define MAX_CIRCUMFERENCE 4.0*(double)MAX_POINT_VALUE
 
 class Point;
+
 
 
 std::ostream &operator<<(std::ostream &out, const Point &p);
@@ -170,7 +172,7 @@ double getMinimumcircumferenceOf3PointsInSetOfPointsSortedInSecondDimension(std:
                         heightOfBox = ceil(minimumcircumference);
                         afterLastInBox = setOfPoints->upper_bound(Point(MAX_POINT_VALUE+1,currentInBoxBottom->y + heightOfBox));
                     }
-                    assert(std::distance(innerLoopPointer, afterLastInBox));
+                    //assert(std::distance(innerLoopPointer, afterLastInBox));
                     innerLoopPointer++;
                 }
                 middleLoopPointer++;
@@ -190,8 +192,8 @@ double getMinimumcircumferenceOf3PointsInSetOfPointsSortedInSecondDimension(std:
 //end should be the point past the last point in the range
 double getMinimumcircumferenceOf3PointsInRangeOfIteratorsInFirstDimension(const PointerToPoint begin, const PointerToPoint end, int numberOfPointsInRange, std::set<Point,PointCompareXFirst> *set)
 {
-    int distance = std::distance(begin, end);
-    assert(distance == numberOfPointsInRange);
+    //int distance = std::distance(begin, end);
+    //assert(distance == numberOfPointsInRange);
     if (numberOfPointsInRange < 3)
         return MAX_CIRCUMFERENCE;
     
@@ -209,41 +211,50 @@ double getMinimumcircumferenceOf3PointsInRangeOfIteratorsInFirstDimension(const 
     
     //1)split in half (find n/2 point, include all values that share x with n/2 point in left hand side)
     PointerToPoint placeholder = begin;
-    int pointsInLeftHalf = 0;
-    int pointsInRightHalf = numberOfPointsInRange;
-    for (; pointsInLeftHalf<(numberOfPointsInRange/2); pointsInLeftHalf++, pointsInRightHalf--)
+    int pointsInLeftHalf = 1;
+    int pointsInRightHalf = numberOfPointsInRange-1;
+    
+    while(pointsInLeftHalf<(numberOfPointsInRange/2))
     {
         placeholder++;
+        pointsInLeftHalf++;
+        pointsInRightHalf--;
     }
     
     assert(pointsInLeftHalf + pointsInRightHalf == numberOfPointsInRange);
     
     //create "median" point that is guaranteed to come after all points with x value equal to placeholder
     //and guaranteed to come before all points with x values greater than placeholder
-    Point medianPoint(placeholder->x, MAX_POINT_VALUE+1);
+//    Point medianPoint(placeholder->x, MAX_POINT_VALUE+1);
 
     //upper bound returns the first iterator after medianPoint
-    PointerToPoint firstRight = set->upper_bound(medianPoint);
-    PointerToPoint lastLeft = std::prev(firstRight);
+//    PointerToPoint firstRight = set->upper_bound(medianPoint);
+//    PointerToPoint lastLeft = std::prev(firstRight);
+    
+    
+    PointerToPoint lastLeft = placeholder;
+    PointerToPoint firstRight = std::next(lastLeft);
     
     //update the number of points in the left side
     //note must be lastLeft >= placeholder
     
     
-    pointsInLeftHalf++;
-    pointsInRightHalf--;
-    
-    while(placeholder != lastLeft)
-    {
-        placeholder++;
-        pointsInLeftHalf++;
-        pointsInRightHalf--;
-    }
+//    pointsInLeftHalf++;
+//    pointsInRightHalf--;
+//    
+//    while(placeholder != lastLeft)
+//    {
+//        placeholder++;
+//        pointsInLeftHalf++;
+//        pointsInRightHalf--;
+//    }
     assert(pointsInLeftHalf + pointsInRightHalf == numberOfPointsInRange);
-    int leftDistance = std::distance(begin, firstRight);
-    int rightDistance = std::distance(firstRight, end);
-    assert(leftDistance == pointsInLeftHalf);
-    assert(rightDistance == pointsInRightHalf);
+    //int leftDistance = std::distance(begin, firstRight);
+    //int rightDistance = std::distance(firstRight, end);
+    //assert(leftDistance == pointsInLeftHalf);
+    //assert(rightDistance == pointsInRightHalf);
+    int leftDistance = pointsInLeftHalf;
+    int rightDistance = pointsInRightHalf;
     
     //2)recurse for both sides and find the minimum circumference out of the pair
     assert(pointsInLeftHalf>0);
@@ -274,10 +285,15 @@ double getMinimumcircumferenceOf3PointsInRangeOfIteratorsInFirstDimension(const 
     double halfcircumference = minimumcircumferenceFromRecursions/2;
     int halfcircumferenceInt = ceil(halfcircumference);
     
-    Point leftBandEdgePoint(placeholder->x - halfcircumferenceInt, MAX_POINT_VALUE+1);
-    Point rightBandEdgePoint(placeholder->x + halfcircumferenceInt, MAX_POINT_VALUE+1);
-    firstInBand = set->lower_bound(leftBandEdgePoint);
-    lastInBand = set->upper_bound(rightBandEdgePoint);
+    if ((placeholder->x - halfcircumferenceInt) <= begin->x)
+        firstInBand = begin;
+    else
+        firstInBand = set->lower_bound(Point(placeholder->x - halfcircumferenceInt, MAX_POINT_VALUE+1));
+    
+    if ((placeholder->x + halfcircumferenceInt) >= end->x)
+        lastInBand = end;
+    else
+        lastInBand = set->upper_bound(Point(placeholder->x + halfcircumferenceInt, MAX_POINT_VALUE+1));
     
     //generate set of points in vertical band sorted by y dimension first
     std::set<Point,PointCompareYFirst> *setOfPointsInVerticalBand = new std::set<Point,PointCompareYFirst>;
@@ -301,8 +317,13 @@ int main(int argc, const char * argv[])
     
     int N;
     std::ostream &output = std::cout;
+    //std::ostream &output = std::cout;
+    //FILE *infile = fopen("perimeterWorstCase.txt", "r");
+    
 
+    
     scanf("%d", &N);
+    //fscanf(infile, "%d", &N);
     
     
     setOfPoints = new std::set<Point,PointCompareXFirst>;
@@ -318,6 +339,7 @@ int main(int argc, const char * argv[])
         buffer = (char*)malloc(n);
         
         scanf("%d %d", &x, &y);
+        //fscanf(infile, "%d %d", &x, &y);
 
         Point p(x,y);
         setOfPoints->insert(p);
